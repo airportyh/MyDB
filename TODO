@@ -1,0 +1,20 @@
+# Features
+
+* create a database `POST /databases/<db_name>`
+* delete a database `DELETE /databases/<db_name>`
+* list and choose a database `GET /databases`
+    * create a table `POST /database/<db_name>/tables/<table_name>`
+    * delete a table `DELETE /database/<db_name>/tables/<table_name>`
+    * list and choose a table `GET /database/<db_name>/tables`
+        * list columns `GET /database/<db_name>/tables/<table_name>/columns`
+        * create a column `POST /database/<db_name>/tables/<table_name>/columns`
+        * modify a column (alter) `PUT /database/<db_name>/tables/<table_name>/columns`
+        * delete a column `DELETE /database/<db_name>/tables/<table_name>/columns`
+        * list rows `GET /database/<db_name>/tables/<table_name>/rows`
+        * insert a row `POST /database/<db_name>/tables/<table_name>/rows`
+        * delete a row `DELETE /database/<db_name>/tables/<table_name>/rows/<row_id>`
+        * modify a row `PUT /database/<db_name>/tables/<table_name>/rows/<row_id>`
+        
+# Question
+
+Do we impose a mandatory numeric primary key? Prefer not, but it would ease some of the implementation.

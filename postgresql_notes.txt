@@ -1,0 +1,12 @@
+-- create a database
+create database test_db;
+
+-- list all databases
+/l
+
+-- switch database to the one specified
+/c test_db;
+
+-- list tables
+/dt
+
