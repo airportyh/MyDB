@@ -14,7 +14,13 @@
         * insert a row `POST /database/<db_name>/tables/<table_name>/rows`
         * delete a row `DELETE /database/<db_name>/tables/<table_name>/rows/<row_id>`
         * modify a row `PUT /database/<db_name>/tables/<table_name>/rows/<row_id>`
+        * foreign key references 
+
+# Todos
+
+* use JSON body instead of form body
+* use PUT for creating things instead of post
         
 # Question
 
-Do we impose a mandatory numeric primary key? Prefer not, but it would ease some of the implementation.
+Do we impose a mandatory numeric primary key? yes
