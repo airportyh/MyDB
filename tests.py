@@ -135,6 +135,33 @@ class TestTables(unittest.TestCase):
         response = requests.delete('http://127.0.0.1:5000/databases/b_test_db/tables/persons/rows/%s' % id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), { "deleted": False })
+    
+    def test_update_row(self):
+        response = requests.put('http://127.0.0.1:5000/databases/b_test_db/tables/persons')
+        self.assertEqual(response.status_code, 200)
+        response = requests.put('http://127.0.0.1:5000/databases/b_test_db/tables/persons/columns/name', json={
+            'type': 'varchar'
+        })
+        self.assertEqual(response.status_code, 200)
+        response = requests.put('http://127.0.0.1:5000/databases/b_test_db/tables/persons/columns/age', json={
+            'type': 'integer'
+        })
+        self.assertEqual(response.status_code, 200)
+        response = requests.post('http://127.0.0.1:5000/databases/b_test_db/tables/persons/rows', json={
+            'columns': ['name', 'age'],
+            'values': ['Jerry', 54]
+        })
+        self.assertEqual(response.status_code, 200)
+        id = response.json()["id"]
+        response = requests.put('http://127.0.0.1:5000/databases/b_test_db/tables/persons/rows/%s' % id, json={
+            'columns': ['name', 'age'],
+            'values': ['Jerome', 55]
+        })
+        self.assertEqual(response.status_code, 200)
+        response = requests.get('http://127.0.0.1:5000/databases/b_test_db/tables/persons/rows')
+        self.assertEqual(response.json(), [
+            {'age': 55, 'id': 1, 'name': 'Jerome'}
+        ])
 
 if __name__ == '__main__':
     unittest.main()

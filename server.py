@@ -11,6 +11,7 @@ import delete_column
 import list_rows
 import create_row
 import delete_row
+import update_row
 import json
 
 app = Flask(__name__)
@@ -72,4 +73,13 @@ def api_create_row(db_name, table_name):
 def api_delete_row(db_name, table_name, id):
     result = delete_row.delete_row(db_name, table_name, id, USERNAME)
     return { "deleted": result }
+    
+@app.route("/databases/<db_name>/tables/<table_name>/rows/<id>", methods=["PUT"])
+def api_update_row(db_name, table_name, id):
+    data = json.loads(request.data)
+    columns = data['columns']
+    values = data['values']
+    updated = update_row.update_row(db_name, table_name, id, columns, values, USERNAME)
+    return { "updated": updated }
+    
     
