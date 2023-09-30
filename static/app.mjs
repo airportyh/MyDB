@@ -84,12 +84,58 @@ async function openTableEditorPage(db, tableName) {
             )
         );
     }
+    function editNextCell(td) {
+        console.log('editNextCell', td);
+        if (td.nextSibling) {
+            const newTd = td.nextSibling;
+            const column = newTd.column;
+            const row = newTd.row;
+            openInlineTextEditor(newTd, column, row, db, tableName, editNextCell, editPreviousCell);
+        } else {
+            // look at next row
+            const tr = td.parentNode;
+            if (tr.nextSibling) {
+                const td = tr.nextSibling.firstChild;
+                // TODO: generic check for primary ID
+                if (td) {
+                    const newTd = td.nextSibling;
+                    const column = newTd.column;
+                    const row = newTd.row;
+                    openInlineTextEditor(newTd, column, row, db, tableName, editNextCell, editPreviousCell);
+                }
+            }
+        }
+    }
+    function editPreviousCell(td) {
+        // if (!td.previousSibling) {
+        //     return;
+        // }
+        // let newTd = td.previousSibling;
+        // let column = newTd.column;
+        // let row = newTd.row;
+        // if (column.name !== 'id') {
+        //     openInlineTextEditor(newTd, column, row, db, tableName, editNextCell, editPreviousCell);
+        // } else {    
+        //     // look at previous row
+        //     const tr = td.parentNode;
+        //     if (tr.nextSibling) {
+        //         const td = tr.nextSibling.firstChild;
+        //         // TODO: generic check for primary ID
+        //         if (td) {
+        //             const newTd = td.nextSibling;
+        //             const column = newTd.column;
+        //             const row = newTd.row;
+        //             openInlineTextEditor(newTd, column, row, db, tableName, editNextCell, editPreviousCell);
+        //         }
+        //     }
+        // }
+    }
     table.appendChild(el.thead(headerRow));
     const tbody = el.tbody();
     for (const row of rows) {
         const tr = el.tr();
         for (const column of columns) {
-            const td = createDataCell(row, column, db, tableName);
+            const td = createDataCell(row, column, db, tableName, editNextCell, editPreviousCell);
             tr.appendChild(td);
         }
         tbody.appendChild(tr);
@@ -98,66 +144,75 @@ async function openTableEditorPage(db, tableName) {
     page.appendChild(table);
     page.appendChild(el.button({
         onClick: async e => {
-            const useColumns = columns
-                .filter(column => column.name !== 'id');
-            const values = Array(useColumns.length);
-            const resp = await fetch(`/databases/${db}/tables/${tableName}/rows`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    columns: useColumns.map(column => column.name),
-                    values
-                })
-            });
-            // TODO: error handling
-            const row = await resp.json();
-            const tr = el.tr(el.td(row.id));
-            for (const column of useColumns) {
-                row[column.name] = null;
-                tr.appendChild(createDataCell(row, column, db, tableName));
-            }
-            tbody.appendChild(tr);
+            await addRow(tbody, columns, db, tableName, editNextCell, editPreviousCell);
         }
     }, 'Add row'));
     root.appendChild(page);
 }
 
-function createDataCell(row, column, db, tableName) {
+async function addRow(tbody, columns, db, tableName, editNextCell, editPreviousCell) {
+    const useColumns = columns
+        .filter(column => column.name !== 'id');
+    const values = Array(useColumns.length);
+    const resp = await fetch(`/databases/${db}/tables/${tableName}/rows`, {
+        method: 'POST',
+        body: JSON.stringify({
+            columns: useColumns.map(column => column.name),
+            values
+        })
+    });
+    // TODO: error handling
+    const row = await resp.json();
+    const tr = el.tr(el.td(row.id));
+    for (const column of useColumns) {
+        row[column.name] = null;
+        tr.appendChild(createDataCell(row, column, db, tableName, editNextCell, editPreviousCell));
+    }
+    tbody.appendChild(tr);
+}
+
+function createDataCell(row, column, db, tableName, editNextCell, editPreviousCell) {
     const td = el.td({
         class: column.name == 'id' ? 'read-only' : '',
         onDblClick: () => {
             if (column.name === 'id') {
                 return;
             }
-            td.innerHTML = '';
-            openInlineTextEditor(td, column, row, db, tableName);
+            openInlineTextEditor(td, column, row, db, tableName, editNextCell, editPreviousCell);
         }
     }, row[column.name]);
+    td.column = column;
+    td.row = row;
     return td;
 }
 
-function openInlineTextEditor(td, column, row, db, tableName) {
+function openInlineTextEditor(td, column, row, db, tableName, editNextCell, editPreviousCell) {
+    const value = td.textContent;
+    td.innerHTML = '';
     const textInput = el.input({
         type: 'text',
-        value: td.textContent,
+        value,
         name: column.name,
         onKeypress: async e => {
+            console.log('keypress', e);
             if (e.key === 'Enter') {
-                textInput.remove();
-                row[column.name] = textInput.value;
-                const resp = await fetch(`/databases/${db}/tables/${tableName}/rows/${row.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        columns: [column.name],
-                        values: [row[column.name]]
-                    })
-                });
-                // TODO: error handling
-                td.appendChild(text(row[column.name]));
+                await saveAndClose();
             }
         },
-        onKeydown: e => {
+        onKeydown: async e => {
+            console.log('keydown', e);
             if (e.key === 'Tab') {
                 e.preventDefault();
+                if (e.shiftKey) {
+                    editPreviousCell(td);
+                } else {
+                    await saveAndClose();
+                    editNextCell(td);
+                }
+            } else if (e.key === 'Escape') {
+                // cancel
+                textInput.remove();
+                td.appendChild(text(row[column.name]));
             }
         }
     });
@@ -166,4 +221,21 @@ function openInlineTextEditor(td, column, row, db, tableName) {
         textInput.focus();
         textInput.select();
     });
+    
+    async function saveAndClose() {
+        textInput.remove();
+        row[column.name] = textInput.value;
+        const resp = await fetch(`/databases/${db}/tables/${tableName}/rows/${row.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                columns: [column.name],
+                values: [row[column.name]]
+            })
+        });
+        const reply = await resp.json();
+        if (reply.updated) {
+            // TODO: error handling
+            td.appendChild(text(row[column.name]));
+        }
+    }
 }

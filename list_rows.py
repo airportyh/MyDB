@@ -16,6 +16,7 @@ def list_rows(dbname, table_name, username):
            *
         FROM 
            {}
+        ORDER BY id
         """).format(sql.Identifier(table_name)), (table_name,))
         result = list(map(lambda d: dict(d), cur.fetchall()))
     finally:
