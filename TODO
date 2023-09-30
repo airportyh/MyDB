@@ -1,4 +1,16 @@
-# Features
+# Todos
+
+* tabbing
+* frontend hash-based routing
+* dates
+* numbers
+* other types
+* use JSON body instead of form body
+* use PUT for creating things instead of post
+        
+# Question
+
+Do we impose a mandatory numeric primary key? yes
 
 * create a database `POST /databases/<db_name>`
 * delete a database `DELETE /databases/<db_name>`
@@ -15,12 +27,3 @@
         * delete a row `DELETE /database/<db_name>/tables/<table_name>/rows/<row_id>`
         * modify a row `PUT /database/<db_name>/tables/<table_name>/rows/<row_id>`
         * foreign key references 
-
-# Todos
-
-* use JSON body instead of form body
-* use PUT for creating things instead of post
-        
-# Question
-
-Do we impose a mandatory numeric primary key? yes

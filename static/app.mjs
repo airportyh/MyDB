@@ -89,16 +89,7 @@ async function openTableEditorPage(db, tableName) {
     for (const row of rows) {
         const tr = el.tr();
         for (const column of columns) {
-            const td = el.td({
-                class: column.name == 'id' ? 'read-only' : '',
-                onDblClick: () => {
-                    if (column.name === 'id') {
-                        return;
-                    }
-                    td.innerHTML = '';
-                    openInlineTextEditor(td, column, row, db, tableName);
-                }
-            }, row[column.name]);
+            const td = createDataCell(row, column, db, tableName);
             tr.appendChild(td);
         }
         tbody.appendChild(tr);
@@ -122,22 +113,26 @@ async function openTableEditorPage(db, tableName) {
             const tr = el.tr(el.td(row.id));
             for (const column of useColumns) {
                 row[column.name] = null;
-                const td = el.td({
-                    class: column.name == 'id' ? 'read-only' : '',
-                    onDblClick: () => {
-                        if (column.name === 'id') {
-                            return;
-                        }
-                        td.innerHTML = '';
-                        openInlineTextEditor(td, column, row, db, tableName);
-                    }
-                }, row[column.name])
-                tr.appendChild(td);
+                tr.appendChild(createDataCell(row, column, db, tableName));
             }
             tbody.appendChild(tr);
         }
     }, 'Add row'));
     root.appendChild(page);
+}
+
+function createDataCell(row, column, db, tableName) {
+    const td = el.td({
+        class: column.name == 'id' ? 'read-only' : '',
+        onDblClick: () => {
+            if (column.name === 'id') {
+                return;
+            }
+            td.innerHTML = '';
+            openInlineTextEditor(td, column, row, db, tableName);
+        }
+    }, row[column.name]);
+    return td;
 }
 
 function openInlineTextEditor(td, column, row, db, tableName) {
