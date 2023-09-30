@@ -19,6 +19,7 @@ def create_row(dbname, table_name, columns, values, username):
             sql.Identifier(table_name),
             *map(lambda col: sql.Identifier(col), columns)
         )
+        print('the_sql %r' % the_sql)
         cur.execute(
             the_sql, 
             values

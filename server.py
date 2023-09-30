@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 
 import list_dbs
 import create_db
@@ -17,6 +17,10 @@ import json
 app = Flask(__name__)
 
 USERNAME = "airportyh"
+
+@app.route("/", methods=["GET"])
+def home():
+    return send_from_directory('static', 'index.html')
 
 @app.route("/databases", methods=["GET"])
 def api_list_dbs():
