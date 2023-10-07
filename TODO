@@ -1,6 +1,6 @@
 # Todos
 
-* tabbing
+* control table width so it doesn't move when editing
 * frontend hash-based routing
 * dates
 * numbers
