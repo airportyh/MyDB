@@ -7,8 +7,10 @@ export class DataTable extends HTMLTableElement {
         this.db = db;
         this.tableName = tableName;
         this.headerRow = el.tr();
+        this.tbody = el.tbody();
+        this.tableColumns = null;
+        this.tableRows = null;
         
-        console.log(`Creating DataTable for ${this.db}:${this.tableName}!`);
         this.initialize();
     }
     
@@ -16,13 +18,11 @@ export class DataTable extends HTMLTableElement {
         this.classList.add('table');
         this.setAttribute('border', 1);
         this.style.width = '100%';
-        const columns = await request.get(`/databases/${this.db}/tables/${this.tableName}/columns`);
-        console.log('columns', columns);
-        const rows = await request.get(`/databases/${this.db}/tables/${this.tableName}/rows`);
-        console.log('rows', rows);
+        this.tableColumns = await request.get(`/databases/${this.db}/tables/${this.tableName}/columns`);
+        this.tableRows = await request.get(`/databases/${this.db}/tables/${this.tableName}/rows`);
         
         const headerRow = el.tr();
-        for (const column of columns) {
+        for (const column of this.tableColumns) {
             headerRow.appendChild(
                 el.th(
                     {
@@ -38,23 +38,16 @@ export class DataTable extends HTMLTableElement {
         
         this.appendChild(el.thead(headerRow));
         
-        const tbody = el.tbody();
-        for (const row of rows) {
+        
+        for (const row of this.tableRows) {
             const tr = el.tr();
-            for (const column of columns) {
+            for (const column of this.tableColumns) {
                 const cell = new DataCell(row, column, this);
                 tr.appendChild(cell);
             }
-            tbody.appendChild(tr);
+            this.tbody.appendChild(tr);
         }
-        this.appendChild(tbody);
-        // page.appendChild(table);
-        // page.appendChild(el.button({
-        //     onClick: async e => {
-        //         await addRow(tbody, columns, db, tableName, editNextCell, editPreviousCell);
-        //     }
-        // }, 'Add row'));
-        // root.appendChild(page);
+        this.appendChild(this.tbody);
     }
     
     editNextCell(cell) {
@@ -91,6 +84,31 @@ export class DataTable extends HTMLTableElement {
             }
         }
     }
+    
+    async addRow() {
+        // async function addRow(tbody, columns, db, tableName, editNextCell, editPreviousCell) {
+        const useColumns = this.tableColumns.filter(column => column.name !== 'id');
+        const values = Array(useColumns.length);
+        const resp = await fetch(`/databases/${this.db}/tables/${this.tableName}/rows`, {
+            method: 'POST',
+            body: JSON.stringify({
+                columns: useColumns.map(column => column.name),
+                values
+            })
+        });
+        // TODO: error handling
+        const row = await resp.json();
+        const idColumn = this.tableColumns.find(c => c.name === 'id');
+        const idCell = new DataCell(row, idColumn, this);
+        const tr = el.tr(idCell);
+        
+        for (const column of useColumns) {
+            row[column.name] = null;
+            const cell = new DataCell(row, column, this);
+            tr.appendChild(cell);
+        }
+        this.tbody.appendChild(tr);
+    }
 }
 
 class DataCell extends HTMLTableCellElement {
@@ -124,16 +142,17 @@ class DataCell extends HTMLTableCellElement {
             value,
             name: this.column.name,
             onKeypress: async e => {
-                console.log('keypress', e);
                 if (e.key === 'Enter') {
-                    await this.saveAndCloseEditor();
+                    this.textInput.remove();
                 }
             },
+            onBlur: e => {
+                this.saveAndCloseEditor();
+            },
             onKeydown: async e => {
-                console.log('keydown', e);
                 if (e.key === 'Tab') {
                     e.preventDefault();
-                    await this.saveAndCloseEditor();
+                    this.textInput.remove();
                     if (e.shiftKey) {
                         this.dataTable.editPreviousCell(this);
                     } else {
@@ -154,7 +173,9 @@ class DataCell extends HTMLTableCellElement {
     }
     
     async saveAndCloseEditor() {
-        this.textInput.remove();
+        if (!this.textInput) {
+            return;
+        }
         this.row[this.column.name] = this.textInput.value;
         this.textInput = null;
         const db = this.dataTable.db;

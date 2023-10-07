@@ -58,5 +58,14 @@ async function openSelectTablePage(db) {
 
 async function openTableEditorPage(db, tableName) {
     const table = new DataTable(db, tableName);
-    root.appendChild(table);
+    const page = el.div({ class: 'page' },
+        el.h1(`${db} > ${tableName}`),
+        table,
+        el.button({
+            onClick(e) {
+                table.addRow();
+            }
+        }, 'Add row')
+    );
+    root.appendChild(page);
 }
